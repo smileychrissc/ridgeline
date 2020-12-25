@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
   page_wrapper: {
     position: 'absolute',
     left: 0,
-    top: 0,
+    top: 45,
     flexDirection: 'column',
     justifyContent: 'space-between',
     width: CalcDimension(Dimensions.get('window').width, 0.05),
