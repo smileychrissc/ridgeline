@@ -27,9 +27,9 @@ class LockElement extends Component {
     super(props);
     
     const position = new Animated.ValueXY(0, 0);
-    this.scrollStopped = false;
     
-    this.completeSwipe = this.completeSwipe.bind(this);
+    this.onLocation = this.onLocation.bind(this);
+    this.onDelete = this.onDelete.bind(this);
     
     const panResponder = PanResponder.create({
           onStartShouldSetPanResponder: () => true,
@@ -42,7 +42,7 @@ class LockElement extends Component {
             this.position.setOffset({ x: this.position.x._value, y: 0 });
             this.position.setValue({ x: 0, y: 0 });
             if (this.props.hasOwnProperty('onBegin')) {
-              this.props.onBegin();
+              this.props.onBegin(this.props.item.id);
             }
         },
         onPanResponderMove: (event, gesture) => {
@@ -85,10 +85,10 @@ class LockElement extends Component {
 
   resetPosition() {
     Animated.timing(this.position, {
-        toValue: { x: 0, y: 0 },
-        duration: 200,
-        useNativeDriver: false,
-        easing: Easing.out(Easing.quad)
+      toValue: { x: 0, y: 0 },
+      duration: 200,
+      useNativeDriver: false,
+      easing: Easing.out(Easing.quad)
     }).start(() => this.props.onReset());
   }
 
@@ -104,12 +104,12 @@ class LockElement extends Component {
 
   getLeftButtonProps() {
     const opacity = this.position.x.interpolate({
-        inputRange: [35, 75, 320],
-        outputRange: [0, 1, 0.25]
+      inputRange: [35, 75, 320],
+      outputRange: [0, 1, 0.25]
     });
     const width = this.position.x.interpolate({
-        inputRange: [0, 70],
-        outputRange: [0, 70]
+      inputRange: [0, 70],
+      outputRange: [0, 70]
     });
     return {
         opacity
@@ -131,20 +131,29 @@ class LockElement extends Component {
   showButton(side) {
     const x = side === 'right' ? SCREEN_WIDTH / 4 : -SCREEN_WIDTH / 4;
     Animated.timing(this.position, {
-        toValue: { x, y: 0 },
-        duration: 400,
-        useNativeDriver: false,
-        easing: Easing.out(Easing.quad)
+      toValue: { x, y: 0 },
+      duration: 400,
+      useNativeDriver: false,
+      easing: Easing.out(Easing.quad)
     }).start();
   }
 
-  completeSwipe(direction, callback) {
-    const x = dimension === 'right' ? SCREEN_WIDTH : -SCREEN_WIDTH;
-      Animated.timing(this.position, {
-        toValue: { x, y: 0 },
-        duration: FORCING_DURATION
-     }).start(() => this.props.cleanFromScreen(this.props.id));
-     callback();
+  onLocation(name) {
+    this.props.onLocation(this.props.item.id);
+    this.resetPosition();
+  }
+
+  onEdit(name) {
+    this.props.onEdit(this.props.item.id);
+    this.resetPosition();
+  }
+
+  onDelete(name) {
+    Animated.timing(this.position, {
+      toValue: { x: -SCREEN_WIDTH, y: 0 },
+      duration: 350,
+      useNativeDriver: false,
+    }).start(() => this.props.onDelete(this.props.item.id));
   }
 
   render() {
@@ -152,15 +161,20 @@ class LockElement extends Component {
     return (
       <View style={styles.lockView} key={this.props.item.id.toString()} >
         <Animated.View style={[styles.lockLocationWrapper, this.getLeftButtonProps()]} >
-          <TouchableOpacity onPress={() => this.completeSwipe('right', () => this.props.onSwipedRight())}>
+          <TouchableOpacity onPress={() => this.onLocation('location')}>
             <Text style={styles.textStyle} numberOfLines={1}>Location</Text>
           </TouchableOpacity>
         </Animated.View>
         <Animated.View style={[styles.lockNameWrapper, this.position.getLayout()]} {...this.panResponder.panHandlers} >
             <Text style={styles.lockName}>{curName}</Text>
         </Animated.View>
+        <Animated.View style={[styles.lockOptionsWrapper, { right: 60, backgroundColor: 'red' }, this.getRightButtonProps()]} >
+          <TouchableOpacity onPress={() => this.onDelete('delete')}>
+            <Text style={styles.textStyle} numberOfLines={1}>Delete</Text>
+          </TouchableOpacity>
+        </Animated.View>
         <Animated.View style={[styles.lockOptionsWrapper, this.getRightButtonProps()]} >
-          <TouchableOpacity onPress={() => this.completeSwipe('left', () => this.props.onSwipedLeft())}>
+          <TouchableOpacity onPress={() => this.onEdit('edit')}>
             <Text style={styles.textStyle} numberOfLines={1}>...</Text>
           </TouchableOpacity>
         </Animated.View>
@@ -187,7 +201,7 @@ const styles = StyleSheet.create({
   },
   lockLocationWrapper: {
     left: 0,
-    width: 80,
+    width: 60,
     height: 73,
     alignItems: 'center',
     justifyContent: 'center',
@@ -203,12 +217,12 @@ const styles = StyleSheet.create({
   lockOptionsWrapper: {
     position: 'absolute',
     right: 0,
-    width: 80,
+    width: 60,
     height: 73,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 7,
-    paddingHorizontal: 18,
+    paddingHorizontal: 10,
     paddingVertical: 23,
     elevation: 3,
     backgroundColor: 'rgb(150, 150, 0)',

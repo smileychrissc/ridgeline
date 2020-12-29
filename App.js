@@ -10,6 +10,7 @@ import {
   Animated,
   Dimensions,
   FlatList,
+  NativeModules,
   PanResponder,
   SafeAreaView,
   ScrollView,
@@ -20,15 +21,17 @@ import {
   View,
 } from 'react-native';
 
-//import AddLock from './AddLock'
+const { LocationModule } = NativeModules;
+
+import EditLock from './EditLock'
 import Header from './Header';
 import LockElement from './LockElement';
 import NewLockElement from './NewLockElement';
 import Properties from './Properties';
 import Utils from './Utils';
 
-const locks = [{
-    id: 0,
+var locks = [{
+    id: '0',
   }, {
     id: '1',
     name: 'bike 1',
@@ -66,8 +69,13 @@ class App extends Component {
   constructor(props) {
     super(props);
     
+    this.editDone = this.editDone.bind(this);
+    this.editUpdate = this.editUpdate.bind(this);
     this.onSwiping = this.onSwiping.bind(this);
     this.onAddLock = this.onAddLock.bind(this);
+    this.onDelete = this.onDelete.bind(this);
+    this.onEdit = this.onEdit.bind(this);
+    this.onLocation = this.onLocation.bind(this);
     this.onPropertiesClose = this.onPropertiesClose.bind(this);
     this.onSwipped = this.onSwipped.bind(this);
     this.renderLocks = this.renderLocks.bind(this);
@@ -76,14 +84,28 @@ class App extends Component {
     
     this.state = {
       active_lock_id: null,
+      editing_lock: null,
       locks_count: (locks && locks.length) || 0,
       render_properties: false,
       swiping: false,
     };
   }
   
+  editDone() {
+    this.setState({editing_lock: null});
+  }
+  
+  editUpdate(editedItem) {
+    const editIndex = locks.findIndex((item) => item.id === editedItem.id);
+    if (editIndex >= 0) {
+      locks[editIndex] = editedItem;
+    } else {
+      console.log("Edited entry not found:",editedItem);
+    }
+  }
+  
   onAddLock() {
-    alert("");
+    this.setState({editing_lock: {id: Utils.uuidv4()}});
   }
   
   onPropertiesClose() {
@@ -92,6 +114,32 @@ class App extends Component {
 
   showProperties() {
     this.setState({render_properties: true});
+  }
+  
+  onDelete(id) {
+    var curLocks = locks.filter(item => {
+      return item.id !== id;
+    });
+    locks = curLocks;
+    this.setState({locks_count: locks.length})
+  }
+  
+  onEdit(id) {
+    console.log("On Edit:",id);
+    var editLock = locks.filter(item => {
+      return item.id === id;
+    });
+    console.log("Editing:",editLock)
+    if (editLock.length > 0) {
+      this.setState({editing_lock: editLock[0]});
+    } else {
+      console.log("WARN: Did not find lock to edit");
+    }
+  }
+  
+  onLocation(id) {
+    console.log("Location",id);
+    LocationModule.currentLocation();
   }
   
   onSwiping(swiping) {
@@ -116,14 +164,18 @@ class App extends Component {
   renderLocks({item, index, separators}) {
     if (item.hasOwnProperty('id') && (parseInt(item['id']) == 0)) {
       return (
-        <NewLockElement lockSize={this.state.locks_count ? 'small' : 'large'} />
+        <NewLockElement onClick={this.onAddLock} lockSize={this.state.locks_count ? 'small' : 'large'} />
       );
     }
 
     const curName = Utils.notEmptyProperty(item, 'name') ? item['name'] : '<unnamed>';
     return (
       <LockElement item={item}
-                   onBegin={() => console.log("Begining")}
+                   activeItem={this.state.active_lock_id}
+                   onBegin={(id) => console.log("Begining")}
+                   onDelete={this.onDelete}
+                   onEdit={this.onEdit}
+                   onLocation={this.onLocation}
                    onSwiping={this.onSwiping}
                    onSwipedLeft={this.onSwipped}
                    onSwipedRight={this.onSwipped}
@@ -134,24 +186,6 @@ class App extends Component {
 
   render() {
     const addLockSize = this.state.locks_count ? 'small' : 'large';
-/*
-
-          <ScrollView
-            contentInsetAdjustmentBehavior="automatic"
-            style={styles.scrollView}
-            keyboardDismissMode="on-drag"
-          >
-            <Header properties={this.showProperties} />
-            <View style={styles.addLockRow} >
-              {addLockSize != 'small' && <View style={styles.addLockWrapper} />}
-              <View style={addLockWrapperStyle} >
-                <AddLock size={addLockSize} onClick={this.onAddLock} />
-              </View>
-              {addLockSize != 'small' && <View style={styles.addLockWrapper} />}
-            </View>
-            {locks.map((item) => this.renderLocks(item))}
-          </ScrollView>
- */
     return (
       <>
         <StatusBar barStyle="dark-content" />
@@ -168,6 +202,9 @@ class App extends Component {
               );}}
             stickyHeaderIndices={[0]}
           />
+          {(this.state.editing_lock !== null) && <EditLock item={this.state.editing_lock}
+                                                           onClose={this.editDone}
+                                                           onUpdate={this.editUpdate} />}
           {this.state.render_properties && <Properties onClose={this.onPropertiesClose} />}
         </SafeAreaView>
       </>

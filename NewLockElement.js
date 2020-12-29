@@ -22,10 +22,10 @@ class NewLockElement extends Component {
     const addLockWrapperStyle = this.props.lockSize == 'small' ? styles.addLockWrapperSmall : styles.addLockWrapper;
 
     return (
-        <View style={styles.addLockRow} >
+        <View key="0" style={styles.addLockRow} >
           {this.props.lockSize != 'small' && <View style={styles.addLockWrapper} />}
           <View style={addLockWrapperStyle} >
-            <AddLock size={this.props.lockSize} onClick={this.onAddLock} />
+            <AddLock size={this.props.lockSize} onClick={this.props.onClick} />
           </View>
          {this.props.lockSize != 'small' && <View style={styles.addLockWrapper} />}
        </View>
