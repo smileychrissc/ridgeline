@@ -7,9 +7,11 @@
 'use strict'
 import React, { Component } from 'react';
 import {
+  Alert,
   Animated,
   Dimensions,
   Easing,
+  Image,
   PanResponder,
   StyleSheet,
   Text,
@@ -142,6 +144,11 @@ class LockElement extends Component {
     this.props.onLocation(this.props.item.id);
     this.resetPosition();
   }
+  
+  onGotoLocation(name) {
+    this.props.onGotoLocation(this.props.item.id);
+    this.resetPosition();
+  }
 
   onEdit(name) {
     this.props.onEdit(this.props.item.id);
@@ -149,33 +156,74 @@ class LockElement extends Component {
   }
 
   onDelete(name) {
-    Animated.timing(this.position, {
-      toValue: { x: -SCREEN_WIDTH, y: 0 },
-      duration: 350,
-      useNativeDriver: false,
-    }).start(() => this.props.onDelete(this.props.item.id));
+    Alert.alert(
+      'Caution',
+      'You are about to delete lock ' + this.props.item['name'] + '.\nDo you want to continue?',
+      [
+        {
+          text: "Cancel",
+          onPress: () => {this.resetPosition()},
+          style: "cancel"
+        },
+        { text: "Delete",
+          onPress: () => {
+            Animated.timing(this.position, {
+            toValue: { x: -SCREEN_WIDTH, y: 0 },
+            duration: 350,
+            useNativeDriver: false,
+            }).start(() => this.props.onDelete(this.props.item.id));
+          }
+        }
+      ],
+      { cancelable: false }
+    );
   }
 
   render() {
+    const haveLocation = Utils.notEmptyProperty(this.props.item, 'location');
     const curName = Utils.notEmptyProperty(this.props.item, 'name') ? this.props.item['name'] : '<unnamed>';
+    const extraNameStyle = haveLocation ? {backgroundColor: '#70c3f9'} : {};
     return (
       <View style={styles.lockView} key={this.props.item.id.toString()} >
         <Animated.View style={[styles.lockLocationWrapper, this.getLeftButtonProps()]} >
           <TouchableOpacity onPress={() => this.onLocation('location')}>
-            <Text style={styles.textStyle} numberOfLines={1}>Location</Text>
+            <View style={styles.buttonWrapper} >
+              <Text style={styles.textStyle} numberOfLines={1}>Save</Text>
+              <Image source={require('./Location.png')} />
+              <Text style={styles.textStyle} numberOfLines={1}>Location</Text>
+            </View>
           </TouchableOpacity>
         </Animated.View>
+        {haveLocation &&
+          <Animated.View style={[styles.lockLocationWrapper, { left: 60, backgroundColor: '#50a3d9' }, this.getLeftButtonProps()]} >
+            <TouchableOpacity onPress={() => this.onGotoLocation('gotoLocation')}>
+              <View style={styles.buttonWrapper} >
+                <Text style={styles.textStyle} numberOfLines={1}>Goto</Text>
+                <Image source={require('./GotoLock.png')} />
+                <Text style={styles.textStyle} numberOfLines={1}>Lock</Text>
+              </View>
+            </TouchableOpacity>
+          </Animated.View>
+        }
         <Animated.View style={[styles.lockNameWrapper, this.position.getLayout()]} {...this.panResponder.panHandlers} >
-            <Text style={styles.lockName}>{curName}</Text>
+            <Text style={[styles.lockName, extraNameStyle]}>{curName}</Text>
         </Animated.View>
         <Animated.View style={[styles.lockOptionsWrapper, { right: 60, backgroundColor: 'red' }, this.getRightButtonProps()]} >
           <TouchableOpacity onPress={() => this.onDelete('delete')}>
-            <Text style={styles.textStyle} numberOfLines={1}>Delete</Text>
+            <View style={styles.buttonWrapper} >
+              <Text style={styles.textStyle} numberOfLines={1}>&nbsp;</Text>
+              <Image source={require('./Delete.png')} />
+              <Text style={styles.textStyle} numberOfLines={1}>Delete</Text>
+            </View>
           </TouchableOpacity>
         </Animated.View>
         <Animated.View style={[styles.lockOptionsWrapper, this.getRightButtonProps()]} >
           <TouchableOpacity onPress={() => this.onEdit('edit')}>
-            <Text style={styles.textStyle} numberOfLines={1}>...</Text>
+            <View style={styles.buttonWrapper} >
+              <Text style={styles.textStyle} numberOfLines={1}>&nbsp;</Text>
+              <Image source={require('./Edit.png')} />
+              <Text style={styles.textStyle} numberOfLines={1}>Edit</Text>
+            </View>
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -209,7 +257,7 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     paddingHorizontal: 18,
     paddingVertical: 23,
-    backgroundColor: 'rgb(150,200,150)',
+    backgroundColor: '#7ab991',
     position: 'absolute',
     elevation: 3,
     zIndex: 1,
@@ -238,6 +286,15 @@ const styles = StyleSheet.create({
   },
   lockName: {
     fontSize: 25,
+  },
+  buttonWrapper: {
+    flex: 1,
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  textStyle: {
+    fontSize: 9,
   },
 });
 

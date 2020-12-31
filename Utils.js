@@ -22,7 +22,8 @@ var Utils = {
       return curObj[prop].trim().length > 0;
     }
     if (typeof curObj[prop] == 'object') {
-      return curObj[prop].keys().length > 0;
+      console.log("NOT empty object:",Object.keys(curObj[prop]).length);
+      return Object.keys(curObj[prop]).length > 0;
     }
     return true;
   },

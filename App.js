@@ -76,6 +76,7 @@ class App extends Component {
     this.onDelete = this.onDelete.bind(this);
     this.onEdit = this.onEdit.bind(this);
     this.onLocation = this.onLocation.bind(this);
+    this.onGotoLocation = this.onGotoLocation.bind(this);
     this.onPropertiesClose = this.onPropertiesClose.bind(this);
     this.onSwipped = this.onSwipped.bind(this);
     this.renderLocks = this.renderLocks.bind(this);
@@ -117,6 +118,9 @@ class App extends Component {
   }
   
   onDelete(id) {
+    const deleteLock = locks.filter(item => {
+      return item.id === id;
+    });
     var curLocks = locks.filter(item => {
       return item.id !== id;
     });
@@ -138,8 +142,36 @@ class App extends Component {
   }
   
   onLocation(id) {
-    console.log("Location",id);
-    LocationModule.currentLocation();
+    console.log("Location",id,LocationModule);
+    LocationModule.currentLocation()
+      .then(location => {
+        const locIndex = locks.findIndex((item) => item.id === id);
+        if (locIndex >= 0) {
+          locks[locIndex]['location'] = location;
+          this.setState({swiping: this.state.swiping});
+        } else {
+          console.log("Entry not found for location:",id);
+        }
+      })
+      .catch(ex => {
+        const { code, message, details } = ex;
+        console.log("OnLocation Exception:", code, message, details);
+      });
+  }
+  
+  onGotoLocation(id) {
+    const locItem = locks.filter(item => {
+      return item.id === id;
+    });
+    console.log("GOTO:",id,locItem,locItem[0]['location']);
+    LocationModule.currentLocation()
+      .then(location => {
+        LocationModule.routeLocation(location[0], location[1], locItem[0]['location'][0], locItem[0]['location'][1]);
+      })
+      .catch(ex => {
+        const { code, message, details } = ex;
+        console.log("onGotoLocation Exception:", code, message, details);
+      });
   }
   
   onSwiping(swiping) {
@@ -176,6 +208,7 @@ class App extends Component {
                    onDelete={this.onDelete}
                    onEdit={this.onEdit}
                    onLocation={this.onLocation}
+                   onGotoLocation={this.onGotoLocation}
                    onSwiping={this.onSwiping}
                    onSwipedLeft={this.onSwipped}
                    onSwipedRight={this.onSwipped}
