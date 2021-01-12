@@ -20,10 +20,9 @@
 
   - (void)LoadLocks: (RCTPromiseResolveBlock)resolve rejectCallback: (RCTPromiseRejectBlock)reject;
   - (void)SaveLocks: (NSDictionary*)locks resolveCallback: (RCTPromiseResolveBlock)resolve rejectCallback: (RCTPromiseRejectBlock)reject;
-  - (void)UpdateLock: (NSDictionary*)lock resolveCallback: (RCTPromiseResolveBlock)resolve rejectCallback: (RCTPromiseRejectBlock)reject;
 
-  - (void)LoadPreferences: (RCTPromiseResolveBlock)resolve rejectCallback: (RCTPromiseRejectBlock)reject;
-  - (void)SavePreferences: (NSDictionary*)preferences resolveCallback: (RCTPromiseResolveBlock)resolve rejectCallback: (RCTPromiseRejectBlock)reject;
+  - (void)LoadPreferences: (NSArray*)keys resolveCallback: (RCTPromiseResolveBlock)resolve rejectCallback: (RCTPromiseRejectBlock)reject;
+  - (void)SavePreferences: (NSArray*)keys preferences: (NSDictionary*)preferences resolveCallback: (RCTPromiseResolveBlock)resolve rejectCallback: (RCTPromiseRejectBlock)reject;
 
 @end
 

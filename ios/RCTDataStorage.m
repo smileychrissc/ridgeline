@@ -82,15 +82,20 @@ NSString* tempFilePrefix = @"ridgeline_";
   return result;
 }
 
-RCT_EXPORT_METHOD(LoadLocks: (RCTPromiseResolveBlock)resolve rejectCallback: (RCTPromiseRejectBlock)reject)
+RCT_EXPORT_METHOD(LoadLocks: (RCTPromiseResolveBlock)resolve
+                              rejectCallback: (RCTPromiseRejectBlock)reject)
 {
+  RCTLogInfo(@"DataStorage: LoadLocks: Entry");
   @try {
     NSString *storeFile = [self getFilePath];
     NSFileManager *fileManager = [NSFileManager defaultManager];
     
+    RCTLogInfo(@"DataStorage: LoadLocks: Check storage");
     if ([fileManager fileExistsAtPath: storeFile]) {
+      RCTLogInfo(@"DataStorage: LoadLocks: Found");
       NSData* dataBuffer = [fileManager contentsAtPath: storeFile];
       if (dataBuffer == nil) {
+        RCTLogInfo(@"DataStorage: LoadLocks: No data loaded");
         NSError* error = [[NSError alloc] initWithDomain:@"Lock file read error" code:100 userInfo:nil];
         reject(@"Error", @"Lock file error", error);
         return;
@@ -98,31 +103,38 @@ RCT_EXPORT_METHOD(LoadLocks: (RCTPromiseResolveBlock)resolve rejectCallback: (RC
       
       NSString* jsonString = [[NSString alloc] initWithData:dataBuffer encoding:NSUTF8StringEncoding];
       if (jsonString == nil) {
+        RCTLogInfo(@"DataStorage: LoadLocks: Bad JSON");
         NSError* error = [[NSError alloc] initWithDomain:@"Lock file corrupted error" code:101 userInfo:nil];
         reject(@"Error", @"Lock file corrupted", error);
         return;
       }
       
+      RCTLogInfo(@"DataStorage: LoadLocks: Decoding data");
       NSData* data = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
       NSError* error = nil;
       NSDictionary* locks = [NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&error];
       
       if (error != nil) {
+        RCTLogInfo(@"DataStorage: LoadLocks: JSON conversion failed");
         reject(@"Error", @"Lock file JSON parse error", error);
       }
       if (locks == nil) {
+        RCTLogInfo(@"DataStorage: LoadLocks: JSON locks conversion has no locks");
         NSError* error = [[NSError alloc] initWithDomain:@"Lock file read error" code:102 userInfo:nil];
         reject(@"Error", @"Lock file JSON parse error", error);
         return;
       }
       
+      RCTLogInfo(@"DataStorage: LoadLocks: resolved with locks");
       resolve(locks);
     }
     else {
+      RCTLogInfo(@"DataStorage: LoadLocks: Resolved with no document or locks");
       resolve(@{});
     }
   }
   @catch (NSException *e) {
+    RCTLogInfo(@"DataStorage: LoadLocks: Exception %@", e.reason);
     reject(@"Exception", @"Unable to load locks", [self formatException:e code:1 message:@"Unable to load locks"]);
   }
 }
@@ -194,18 +206,49 @@ RCT_EXPORT_METHOD(SaveLocks: (NSDictionary*)locks resolveCallback: (RCTPromiseRe
     }
 
   } @catch (NSException *e) {
-    reject(@"Exception", @"Unable to save locks", [self formatException:e code:1 message:@"Unable to load locks"]);
+    reject(@"Exception", @"Unable to save locks", [self formatException:e code:1 message:@"Unable to save locks"]);
   }
 }
 
-RCT_EXPORT_METHOD(LoadPreferences: (RCTPromiseResolveBlock)resolve rejectCallback: (RCTPromiseRejectBlock)reject)
+RCT_EXPORT_METHOD(LoadPreferences: (NSArray*)keys
+                                   resolveCallback: (RCTPromiseResolveBlock)resolve
+                                   rejectCallback: (RCTPromiseRejectBlock)reject)
 {
-
+  NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+  NSMutableDictionary* prefs = [[NSMutableDictionary alloc] init];
+  
+  @try {
+    NSDictionary* reps = [userDefaults dictionaryRepresentation];
+    for (id keyName in keys) {
+      if ([reps objectForKey:keyName]) {
+        id prefValue = [reps valueForKey:keyName];
+        prefs[keyName] = prefValue;
+      }
+    }
+    resolve(prefs);
+  } @catch (NSException *e) {
+    reject(@"Exception", @"Unable to load preferences", [self formatException:e code:1 message:@"Unable to load preferences"]);
+  }
 }
 
-RCT_EXPORT_METHOD(SavePreferences: (NSDictionary*)preferences resolveCallback: (RCTPromiseResolveBlock)resolve rejectCallback: (RCTPromiseRejectBlock)reject)
+RCT_EXPORT_METHOD(SavePreferences: (NSArray*)keys
+                                   preferences: (NSDictionary*)preferences
+                                   resolveCallback: (RCTPromiseResolveBlock)resolve
+                                   rejectCallback: (RCTPromiseRejectBlock)reject)
 {
+  NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+  NSMutableDictionary* prefs = [[NSMutableDictionary alloc] init];
 
+  @try {
+    for (id keyName in keys) {
+      id prefValue = [preferences valueForKey:keyName];
+      [userDefaults setObject: prefValue forKey:keyName];
+      prefs[keyName] = prefValue;
+    }
+    resolve(prefs);
+  } @catch (NSException *e) {
+    reject(@"Exception", @"Unable to save preferences", [self formatException:e code:1 message:@"Unable to save preferences"]);
+  }
 }
 
 @end
