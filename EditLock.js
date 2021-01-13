@@ -53,6 +53,7 @@ class EditLock extends Component {
 
   render() {
     const curName = this.props.item && this.props.item.hasOwnProperty('name') ? this.props.item['name'] : '';
+    const curTitle = this.props.hasOwnProperty('newLock') && this.props['newLock'] ? "Add Lock" : "Edit Lock";
 
     return (
     <View style={styles.page_wrapper}>
@@ -60,7 +61,7 @@ class EditLock extends Component {
         <View style={styles.filler}>
         </View>
         <View style={styles.title_view}>
-          <Text style={styles.title}>Edit Lock</Text>
+          <Text style={styles.title}>{curTitle}</Text>
         </View>
         <View style={styles.filler}>
         </View>

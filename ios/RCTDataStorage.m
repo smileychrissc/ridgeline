@@ -82,8 +82,7 @@ NSString* tempFilePrefix = @"ridgeline_";
   return result;
 }
 
-RCT_EXPORT_METHOD(LoadLocks: (RCTPromiseResolveBlock)resolve
-                              rejectCallback: (RCTPromiseRejectBlock)reject)
+RCT_EXPORT_METHOD(LoadLocks: (RCTPromiseResolveBlock)resolve rejectCallback: (RCTPromiseRejectBlock)reject)
 {
   RCTLogInfo(@"DataStorage: LoadLocks: Entry");
   @try {
@@ -130,7 +129,7 @@ RCT_EXPORT_METHOD(LoadLocks: (RCTPromiseResolveBlock)resolve
     }
     else {
       RCTLogInfo(@"DataStorage: LoadLocks: Resolved with no document or locks");
-      resolve(@{});
+      resolve(@[]);
     }
   }
   @catch (NSException *e) {
@@ -139,20 +138,23 @@ RCT_EXPORT_METHOD(LoadLocks: (RCTPromiseResolveBlock)resolve
   }
 }
 
-RCT_EXPORT_METHOD(SaveLocks: (NSDictionary*)locks resolveCallback: (RCTPromiseResolveBlock)resolve rejectCallback: (RCTPromiseRejectBlock)reject)
+RCT_EXPORT_METHOD(SaveLocks: (NSArray*)locks resolveCallback: (RCTPromiseResolveBlock)resolve rejectCallback: (RCTPromiseRejectBlock)reject)
 {
+  RCTLogInfo(@"DataStorage: SaveLocks: Entry");
   @try {
     NSError* error = nil;
-    NSData* jsonDataString = [NSJSONSerialization dataWithJSONObject:self
+    NSData* jsonDataString = [NSJSONSerialization dataWithJSONObject:locks
                                                   options:(NSJSONWritingOptions)NSJSONWritingPrettyPrinted
                                                   error:&error];
 
     if (error != nil) {
+      RCTLogInfo(@"DataStorage: SaveLocks: JSON conversion error %@", error);
       reject(@"Error", @"Lock data JSON conversion error", error);
       return;
     }
     if (jsonDataString == nil) {
-      NSError* error = [[NSError alloc] initWithDomain:@"Lock data conversion failed" code:110 userInfo:nil];
+      error = [[NSError alloc] initWithDomain:@"Lock data conversion failed" code:110 userInfo:nil];
+      RCTLogInfo(@"DataStorage: SaveLocks: to-JSON conversion error %@", error);
       reject(@"Error", @"Lock data conversion failed", error);
       return;
     }
@@ -189,7 +191,8 @@ RCT_EXPORT_METHOD(SaveLocks: (NSDictionary*)locks resolveCallback: (RCTPromiseRe
       BOOL updated = [fileManager createFileAtPath:storeFile contents:jsonData attributes:nil];
 
       if (!updated) {
-        NSError* error = [[NSError alloc] initWithDomain:@"Lock data update failed" code:111 userInfo:nil];
+        error = [[NSError alloc] initWithDomain:@"Lock data update failed" code:111 userInfo:nil];
+        RCTLogInfo(@"DataStorage: SaveLocks: lock update failed %@", error);
         reject(@"Error", @"Lock data update failed", error);
         return;
       }
@@ -199,13 +202,14 @@ RCT_EXPORT_METHOD(SaveLocks: (NSDictionary*)locks resolveCallback: (RCTPromiseRe
         RCTLogInfo(@"DataStorage: saveLocks: unable to remove temporary file: %@", error.localizedDescription);
       }
 */
-      resolve(locks);
     }
     else {
+      RCTLogInfo(@"DataStorage: SaveLocks: new store save");
       [fileManager createFileAtPath:storeFile contents:jsonData attributes: nil];
     }
-
+    resolve(locks);
   } @catch (NSException *e) {
+    RCTLogInfo(@"DataStorage: SaveLocks: Exception %@", e.reason);
     reject(@"Exception", @"Unable to save locks", [self formatException:e code:1 message:@"Unable to save locks"]);
   }
 }

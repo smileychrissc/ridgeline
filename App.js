@@ -21,7 +21,7 @@ import {
   View,
 } from 'react-native';
 
-const { LocationModule } = NativeModules;
+const { DataStorage, LocationModule } = NativeModules;
 
 import EditLock from './EditLock'
 import Header from './Header';
@@ -82,18 +82,40 @@ class App extends Component {
     this.renderLocks = this.renderLocks.bind(this);
     this.resetSwiping = this.resetSwiping.bind(this);
     this.showProperties = this.showProperties.bind(this);
-    
+
+    // Load the locks
+    DataStorage.LoadLocks()
+      .then((loaded_locks) => {locks = (loaded_locks.length > 0) ? loaded_locks : [{id: '0'}];
+                               this.setState({locks_count:locks.length});})
+      .catch(ex => {
+        const { code, message, details } = ex;
+        console.log("App:contructor:LoadLocks Exception:", code, message, details);
+      });
+
     this.state = {
       active_lock_id: null,
       editing_lock: null,
       locks_count: (locks && locks.length) || 0,
+      new_lock: false,
       render_properties: false,
       swiping: false,
     };
   }
   
+  // TODO: After 1 second display a spinner
+  // TODO: Retry save upon failure for x times (with status message)
+  saveLocks() {
+    DataStorage.SaveLocks(locks)
+      .then(() => console.log("Locks Saved"))
+      .catch(ex => {
+        const { code, message, details } = ex;
+        console.log("saveLocks Exception:", code, message, details);
+      });
+  }
+
   editDone() {
-    this.setState({editing_lock: null});
+    this.setState({editing_lock: null, locks_count: (locks && locks.length) || 0});
+    this.saveLocks();
   }
   
   editUpdate(editedItem) {
@@ -101,12 +123,16 @@ class App extends Component {
     if (editIndex >= 0) {
       locks[editIndex] = editedItem;
     } else {
-      console.log("Edited entry not found:",editedItem);
+      if (this.state.new_lock) {
+        const newLen = locks.push(editedItem);
+      } else {
+        console.log("Edited entry not found:",editedItem);
+      }
     }
   }
   
   onAddLock() {
-    this.setState({editing_lock: {id: Utils.uuidv4()}});
+    this.setState({editing_lock: {id: Utils.uuidv4()}, new_lock: true});
   }
   
   onPropertiesClose() {
@@ -126,6 +152,7 @@ class App extends Component {
     });
     locks = curLocks;
     this.setState({locks_count: locks.length})
+    this.saveLocks();
   }
   
   onEdit(id) {
@@ -135,7 +162,7 @@ class App extends Component {
     });
     console.log("Editing:",editLock)
     if (editLock.length > 0) {
-      this.setState({editing_lock: editLock[0]});
+      this.setState({editing_lock: editLock[0], new_lock: false});
     } else {
       console.log("WARN: Did not find lock to edit");
     }
@@ -149,6 +176,7 @@ class App extends Component {
         if (locIndex >= 0) {
           locks[locIndex]['location'] = location;
           this.setState({swiping: this.state.swiping});
+          this.saveLocks();
         } else {
           console.log("Entry not found for location:",id);
         }
@@ -219,6 +247,9 @@ class App extends Component {
 
   render() {
     const addLockSize = this.state.locks_count ? 'small' : 'large';
+    const editNewLock = this.state.editing_lock ? (this.state.new_lock ? true : false) : false;
+    if (this.state.editing_lock)
+      console.log("EDIT NEW LOCK:",editNewLock,this.state.new_lock);
     return (
       <>
         <StatusBar barStyle="dark-content" />
@@ -236,8 +267,10 @@ class App extends Component {
             stickyHeaderIndices={[0]}
           />
           {(this.state.editing_lock !== null) && <EditLock item={this.state.editing_lock}
+                                                           newLock={editNewLock}
                                                            onClose={this.editDone}
-                                                           onUpdate={this.editUpdate} />}
+                                                           onUpdate={this.editUpdate}
+                                                           />}
           {this.state.render_properties && <Properties onClose={this.onPropertiesClose} />}
         </SafeAreaView>
       </>
