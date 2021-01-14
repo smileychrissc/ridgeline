@@ -113,9 +113,22 @@ class App extends Component {
       });
   }
 
-  editDone() {
-    this.setState({editing_lock: null, locks_count: (locks && locks.length) || 0});
-    this.saveLocks();
+  editDone(editedItem) {
+    const editIndex = locks.findIndex((item) => item.id === editedItem.id);
+    if (editIndex >= 0) {
+      // Check if we need to encrypt the password
+      if (Utils.notEmptyProperty(editedItem, 'password') &&
+          Utils.notEmptyProperty(locks[editIndex], 'password') &&
+          (editedItem['password'] !== locks[editIndex]['password'])) {
+        //editedItem['password'] = Encrypt.hash(editedItem['password'];
+      }
+      locks[editIndex] = editedItem;
+    
+      this.setState({editing_lock: null, locks_count: (locks && locks.length) || 0});
+      this.saveLocks();
+    } else {
+      console.log("Unable to find edited entry after edit");
+    }
   }
   
   editUpdate(editedItem) {

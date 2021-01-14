@@ -8,15 +8,19 @@
 'use strict';
 import {Component} from 'react';
 import {Dimensions,
+        Platform,
         StyleSheet,
         Text,
         TextInput,
         TouchableOpacity,
         View} from 'react-native';
 import React from 'react';
+import CheckBox from '@react-native-community/checkbox';
 import Utils from './Utils'
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
+const showPasswordFont = Platform.OS === 'ios' ? 'Courier' : (Platform.OS === 'windows' ? 'monospace' : 'monospace');
+
 
 class EditLock extends Component {
 
@@ -25,22 +29,39 @@ class EditLock extends Component {
     
     this._onClose = this._onClose.bind(this);
     this._onChangeName = this._onChangeName.bind(this);
+    this._onChangePassword = this._onChangePassword.bind(this);
+    
+    this.updatedItem = Object.assign({}, this.props.item);
     
     this.state = {
      visible: true,
-     updatedItem: Object.assign({}, this.props.item),
+     hide_password: false,
     };
   }
 
   _onChangeName(newValue) {
-    this.state.updatedItem.name = newValue;
+    this.updatedItem.name = newValue;
     if (Utils.notEmptyProperty(this.props, 'onUpdate')) {
       if (typeof this.props['onUpdate'] == 'function') {
-        this.props.onUpdate(this.state.updatedItem);
+        this.props.onUpdate(this.updatedItem);
       }
     }
   }
   
+  _onChangePassword(newValue) {
+    this.updatedItem.password = newValue;
+    
+    if (!this.state.hide_password) {
+      this.setState({hide_password: this.state.hidePassword});
+    }
+
+    if (Utils.notEmptyProperty(this.props, 'onUpdate')) {
+      if (typeof this.props['onUpdate'] == 'function') {
+        this.props.onUpdate(this.updatedItem);
+      }
+    }
+  }
+
   _onClose() {
     if (Utils.notEmptyProperty(this.props, 'onClose')) {
       if (typeof this.props['onClose'] == 'function') {
@@ -52,9 +73,10 @@ class EditLock extends Component {
   }
 
   render() {
-    const curName = this.props.item && this.props.item.hasOwnProperty('name') ? this.props.item['name'] : '';
-    const curTitle = this.props.hasOwnProperty('newLock') && this.props['newLock'] ? "Add Lock" : "Edit Lock";
-
+    const curName = Utils.notEmptyProperty(this.props.item, 'name') ? this.props.item['name'] : '';
+    const curTitle = Utils.notEmptyProperty(this.props, 'newLock') ? "Add Lock" : "Edit Lock";
+    const defaultPassword = this.updatedItem && Utils.notEmptyProperty(this.updatedItem, 'password') ? this.updatedItem['password'] : null;
+    
     return (
     <View style={styles.page_wrapper}>
       <View style={styles.header}>
@@ -80,10 +102,28 @@ class EditLock extends Component {
         </View>
         <View style={styles.edit_field_wrapper} >
           <Text style={[styles.edit_left_column, styles.name_label]} >Name</Text>
-          <TextInput style={[styles.edit_text_input, styles.name_input]}
+          <TextInput style={[styles.edit_right_column, styles.edit_text_input, styles.name_input]}
                      defaultValue={this.props.item.name}
                      onChangeText={this._onChangeName}
                      />
+        </View>
+        <View style={styles.edit_field_wrapper} >
+          <Text style={[styles.edit_left_column, styles.password_label]} numberOfLines={1}>New password</Text>
+          <TextInput style={[styles.edit_right_column, styles.edit_text_input, styles.password_input]}
+                     onChangeText={this._onChangePassword}
+                     secureTextEntry={true}
+                     />
+        </View>
+        <View style={styles.edit_field_wrapper} >
+          <Text style={[styles.edit_left_column, styles.show_password_label]} >Show password</Text>
+          <View style={[styles.edit_right_column, styles.show_password_right]}>
+            <CheckBox style={styles.show_password_checkbox}
+                      disabled={false}
+                      value={!this.state.hide_password}
+                      onValueChange={(newValue) => this.setState({hide_password: !newValue})}
+                      />
+            {!this.state.hide_password && <View style={styles.show_password_text_wrapper}><Text style={[styles.show_password_text]} numberOfLines={1} >{defaultPassword}</Text></View>}
+          </View>
         </View>
       </View>
     </View>
@@ -163,16 +203,56 @@ const styles = StyleSheet.create({
     paddingLeft: 10,
   },
   edit_left_column: {
-    width: SCREEN_WIDTH * 0.20,
+    width: SCREEN_WIDTH * 0.25,
     alignSelf: 'flex-start',
+  },
+  edit_right_column: {
+    width: SCREEN_WIDTH * 0.55,
   },
   edit_text_input: {
     height: 20,
     borderColor: 'gray',
     borderWidth: 1,
-    width: SCREEN_WIDTH * 0.60,
+  },
+  name_label: {
   },
   name_input: {
+  },
+  password_label: {
+  },
+  password_input: {
+  },
+  show_password_label: {
+    marginLeft: 10,
+    fontSize: 11,
+  },
+  show_password_input: {
+  },
+  show_password_right: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 10,
+  },
+  show_password_checkbox: {
+    width: 14,
+    height: 14,
+    marginLeft: 15,
+    alignSelf: 'flex-start',
+  },
+  show_password_text_wrapper: {
+    marginLeft: 7,
+    borderLeftWidth: 2,
+    borderRightWidth: 2,
+    borderRadius: 4,
+    borderColor: 'skyblue',
+  },
+  show_password_text: {
+    marginLeft: 3,
+    fontSize: 11,
+    color: 'rgb(80,80,80)',
+    fontFamily: showPasswordFont,
+    width: SCREEN_WIDTH * 0.45,
   },
 });
 
